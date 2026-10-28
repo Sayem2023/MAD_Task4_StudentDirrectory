@@ -1,38 +1,54 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
-import StudentItem from "@/components/student-item";
-import { Student, STUDENTS } from "@/data/students";
-import { SafeAreaView } from "react-native-safe-area-context";
-import SearchBar from "@/components/search-bar";
 import { useState } from "react";
-// NEW: import the StudentDetail component to show student details when selected
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import StudentItem from "@/components/student-item";
+import SearchBar from "@/components/search-bar";
 import StudentDetail from "@/components/student-detail";
+import AddStudentForm from "@/components/add-student-form";
+import { Student, STUDENTS } from "@/data/students";
 
 export default function HomeScreen() {
-  // State 1: the current search query
   const [query, setQuery] = useState<string>("");
-
-  // NEW: State 2: the currently selected student (null = none selected)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [students, setStudents] = useState<Student[]>(STUDENTS);
+  const [showForm, setShowForm] = useState(false);
 
-  // NEW: Toggle selection: tap same student to select and deselect
   const handleSelect = (student: Student) => {
     setSelectedStudent((prev) => (prev?.id === student.id ? null : student));
   };
 
-  // Derived value: filter students based on query
-  // This is NOT state — it is computed from state every render
-  const filtered = STUDENTS.filter((s) => {
+  const handleNewStudent = (newStudent: Student) => {
+    setStudents((prev) => [newStudent, ...prev]);
+    setShowForm(false);
+    setSelectedStudent(null);
+  };
+
+  if (showForm) {
     return (
-      s.name.toLowerCase().includes(query.toLowerCase()) || // check if name matches query OR
-      s.department.toLowerCase().includes(query.toLowerCase()) // check if department matches query
+      <SafeAreaView style={styles.container}>
+        <Pressable style={styles.backButton} onPress={() => setShowForm(false)}>
+          <Text style={styles.backButtonText}>← Back to directory</Text>
+        </Pressable>
+        <AddStudentForm onSubmitSuccess={handleNewStudent} />
+      </SafeAreaView>
+    );
+  }
+
+  const filtered = students.filter((student) => {
+    const search = query.toLowerCase();
+    return (
+      student.name.toLowerCase().includes(search) ||
+      student.department.toLowerCase().includes(search)
     );
   });
 
   return (
-    // View is the container that contains the list of students and search bar
     <SafeAreaView style={styles.container}>
       <View style={styles.titleBar}>
         <Text style={styles.title}>Student Directory</Text>
+        <Pressable style={styles.addButton} onPress={() => setShowForm(true)}>
+          <Text style={styles.addButtonText}>+ Add</Text>
+        </Pressable>
       </View>
 
       <SearchBar value={query} onChangeText={setQuery} />
@@ -40,8 +56,6 @@ export default function HomeScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        // NEW: update the onPress handler to toggle selection and pass isSelected prop to StudentItem
-        // and the isSelected prop is used to conditionally style the selected student item in the list (e.g., highlight it)
         renderItem={({ item }) => (
           <StudentItem
             student={item}
@@ -56,7 +70,6 @@ export default function HomeScreen() {
         }
       />
 
-      {/* NEW: Detail panel — only shown when a student is selected */}
       {selectedStudent && <StudentDetail student={selectedStudent} />}
     </SafeAreaView>
   );
@@ -67,23 +80,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F0F4F8",
   },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-  },
-  // NEW: styles for the title bar
   titleBar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -97,9 +93,24 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFFFFF",
   },
-  count: {
-    fontSize: 12,
-    color: "#CCFBF1",
+  addButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#0D9488",
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  backButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#0D1F4E",
+  },
+  backButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   empty: {
     padding: 40,
